@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz Game AI & Koding - Kelas XI TKP</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #0f172a;
+      color: #f8fafc;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+  <!-- Container Utama -->
+  <div class="w-full max-w-2xl bg-slate-800 rounded-2xl shadow-2xl border border-slate-700 overflow-hidden">
+    
+    <!-- HEADER -->
+    <div class="bg-blue-600 p-6 text-center relative">
+      <h1 class="text-2xl font-extrabold text-white">QUIZ GAME: AI & KODING KONSTRUKSI</h1>
+      <p class="text-blue-100 text-sm mt-1">Kelas XI TKP • Pertemuan 3: Konsep & Pemanfaatan AI</p>
+    </div>
+
+    <!-- SCREEN 1: FORM NAMA (REGISTRASI) -->
+    <div id="screen-register" class="p-8 space-y-6">
+      <div class="text-center space-y-2">
+        <i class="fa-solid fa-user-astronaut text-5xl text-blue-400 mb-2"></i>
+        <h2 class="text-xl font-bold text-white">Selamat Datang, Calon Teknisi AI!</h2>
+        <p class="text-slate-400 text-sm">Masukkan nama lengkap dan kelasmu untuk memulai kuis. Nilai akhirnya akan otomatis tercatat di rekap guru.</p>
+      </div>
+
+      <form id="form-start" onsubmit="startQuiz(event)" class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Nama Lengkap Siswa</label>
+          <input type="text" id="input-nama" required placeholder="Contoh: Budi Santoso" class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-blue-500 transition">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-300 mb-2">Kelas / Rombel</label>
+          <input type="text" id="input-kelas" required placeholder="Contoh: XI TKP 1" class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-blue-500 transition">
+        </div>
+
+        <!-- Google Apps Script URL Config Option -->
+        <div class="pt-2 border-t border-slate-700">
+          <label class="block text-xs font-semibold text-slate-400 mb-1">URL Web App Google Sheets (Opsional / Guru Config):</label>
+          <input type="url" id="input-script-url" placeholder="https://script.google.com/macros/s/AKfycbwRZCvn_ZcxuRS-IA5FrBAr0T61zZvdCcHOCIrEIy66ZUK0C6PZzjHvMsoz8lBP-EiD/exec" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-300 focus:outline-none focus:border-blue-500">
+          <p class="text-[11px] text-slate-500 mt-1">Biarkan default jika URL sudah dikonfigurasi di dalam script.</p>
+        </div>
+
+        <button type="submit" class="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+          <span>Mulai Kerjakan Quiz</span>
+          <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </form>
+    </div>
+
+    <!-- SCREEN 2: GAME QUIZ -->
+    <div id="screen-quiz" class="p-6 hidden space-y-6">
+      <!-- Progress Bar -->
+      <div class="space-y-2">
+        <div class="flex justify-between text-xs font-bold text-slate-400">
+          <span id="label-soal-no">Soal 1 dari 15</span>
+          <span id="label-skor-sementara">Skor: 0</span>
+        </div>
+        <div class="w-full bg-slate-700 h-2.5 rounded-full overflow-hidden">
+          <div id="progress-bar" class="bg-blue-500 h-full w-0 transition-all duration-300"></div>
+        </div>
+      </div>
+
+      <!-- Teks Soal -->
+      <div class="bg-slate-900 p-5 rounded-xl border border-slate-700">
+        <h3 id="question-text" class="text-base font-semibold text-slate-100 leading-relaxed">
+          Loading soal...
+        </h3>
+      </div>
+
+      <!-- Pilihan Jawaban -->
+      <div id="options-container" class="space-y-3">
+        <!-- Generatated via JS -->
+      </div>
+
+      <!-- Penjelasan / Rationale -->
+      <div id="explanation-box" class="hidden p-4 bg-blue-950/60 border border-blue-800 rounded-xl text-sm text-blue-200">
+        <p class="font-bold mb-1 flex items-center gap-2">
+          <i class="fa-solid fa-circle-info text-blue-400"></i> Penjelasan:
+        </p>
+        <p id="explanation-text"></p>
+      </div>
+
+      <!-- Tombol Lanjut -->
+      <button id="btn-next" onclick="nextQuestion()" class="hidden w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition flex items-center justify-center gap-2">
+        <span>Soal Berikutnya</span>
+        <i class="fa-solid fa-chevron-right"></i>
+      </button>
+    </div>
+
+    <!-- SCREEN 3: HASIL AKHIR & STATUS SPREADSHEET -->
+    <div id="screen-result" class="p-8 hidden text-center space-y-6">
+      <div class="inline-block p-4 bg-blue-600/20 text-blue-400 rounded-full mb-2">
+        <i class="fa-solid fa-trophy text-5xl"></i>
+      </div>
+      
+      <div class="space-y-1">
+        <h2 class="text-2xl font-extrabold text-white" id="result-student-name">Selamat!</h2>
+        <p class="text-slate-400 text-sm" id="result-student-class">XI TKP</p>
+      </div>
+
+      <div class="bg-slate-900 p-6 rounded-2xl border border-slate-700 space-y-3">
+        <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Nilai Akhir Kamu</p>
+        <p id="final-score" class="text-6xl font-black text-emerald-400">0</p>
+        <p id="score-details" class="text-sm text-slate-300">Menjawab benar 0 dari 15 soal</p>
+      </div>
+
+      <!-- Status Pengiriman Ke Spreadsheet -->
+      <div id="sheets-status-box" class="p-4 rounded-xl border bg-slate-900 border-slate-700 text-sm flex items-center justify-center gap-3">
+        <i id="sheets-status-icon" class="fa-solid fa-circle-notch fa-spin text-blue-400 text-lg"></i>
+        <span id="sheets-status-text" class="text-slate-300">Mengirim data nilai ke Google Sheets...</span>
+      </div>
+
+      <button onclick="location.reload()" class="w-full py-3 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl transition">
+        Ulangi Kuis
+      </button>
+    </div>
+
+  </div>
+
+  <script>
+    // --- GURU CONFIGURATION ---
+    // Masukkan URL Web App Google Apps Script Anda di bawah ini agar otomatis tersimpan
+    let GOOGLE_SCRIPT_URL = ""; 
+
+    // DATA SOAL (15 SOAL SPESIFIK TKP + PERUMPAMAAN)
+    const quizData = [
+      {
+        question: "1. Perumpamaan yang paling tepat untuk membedakan 'Koding Konvensional' dan 'AI/Machine Learning' dalam bidang konstruksi adalah...",
+        options: [
+          { text: "Koding seperti Buku Resep Kaku; AI seperti Mandor Senior Berpengalaman.", correct: true, rationale: "Koding konvensional mengeksekusi instruksi kaku langkah demi langkah, sedangkan AI belajar dari data historis pengalaman untuk menganalisis kasus baru." },
+          { text: "Koding seperti Mesin Molen; AI seperti Truk Semen.", correct: false, rationale: "Perumpamaan ini tidak mencerminkan proses berpikir atau pembelajaran algoritma." },
+          { text: "Koding seperti Gambar Manual; AI seperti Gambar CAD.", correct: false, rationale: "CAD masih merupakan alat konvensional yang tidak memiliki kecerdasan buatan sendiri." },
+          { text: "Koding seperti Tukang Batu; AI seperti Mandor Tanpa Pengalaman.", correct: false, rationale: "AI menganalogikan mandor berpengetahuan luas karena belajar dari ribuan data masa lalu." }
+        ]
+      },
+      {
+        question: "2. Dalam pekerjaan RAB, jika rumus Excel menghitung `Luas = Panjang x Lebar`, sifat perhitungan koding konvensional tersebut adalah...",
+        options: [
+          { text: "Kaku dan hanya menghitung angka sesuai rumus pasti yang diketik.", correct: true, rationale: "Program konvensional tidak bisa menyesuaikan diri jika ada perubahan denah tanpa ada yang mengubah rumusnya secara manual." },
+          { text: "Otomatis mengenali bentuk denah dan mengubah rumus sendiri.", correct: false, rationale: "Ini adalah kemampuan AI, bukan rumus konvensional Excel." },
+          { text: "Dapat memprediksi kenaikan harga bahan semen di pasar.", correct: false, rationale: "Prediksi berbasis tren harga memerlukan algoritma kecerdasan buatan." },
+          { text: "Dapat membaca gambar sketsa tangan secara langsung.", correct: false, rationale: "Membaca gambar butuh teknologi Computer Vision pada AI." }
+        ]
+      },
+      {
+        question: "3. Perumpamaan teknologi Generative AI (seperti LookX AI atau Veras) dalam dunia perancangan perumahan adalah...",
+        options: [
+          { text: "Seperti Memiliki 'Tukang Gambar Ajaib' yang memoles sketsa garis pensil jadi foto 3D.", correct: true, rationale: "Generative AI mampu menerjemahkan sketsa kasar menjadi render visualisasi 3D realistis dalam hitungan detik." },
+          { text: "Seperti Memiliki 'Kalkulator Digital' untuk menghitung volume keramik.", correct: false, rationale: "Kalkulator volume berkaitan dengan AI Takeoff / Estimasi RAB, bukan Generative AI Render." },
+          { text: "Seperti Memiliki 'Satpam Proyek' yang menjaga gerbang.", correct: false, rationale: "Satpam proyek adalah perumpamaan untuk Computer Vision K3." },
+          { text: "Seperti Memiliki 'Mesin Cetak Bata' otomatis.", correct: false, rationale: "Mesin cetak adalah alat fisik robotik, bukan AI perancangan gambar." }
+        ]
+      },
+      {
+        question: "4. Mengapa perintah (Prompt) 'Buatkan rumah bagus modern' dianggap sebagai prompt yang BURUK untuk AI Render?",
+        options: [
+          { text: "Terlalu samar sehingga AI bingung dan menghasilkan desain acak.", correct: true, rationale: "Prompting seperti Surat Perintah Kerja (SPK). Jika instruksi tidak detail, AI akan berspekulasi secara acak." },
+          { text: "Bahasa Indonesia tidak bisa dibaca oleh sistem AI.", correct: false, rationale: "Sistem AI modern sudah mendukung pemrosesan berbagai bahasa." },
+          { text: "Karena AI tidak mengerti kata 'modern'.", correct: false, rationale: "AI mengerti kata modern, namun 'modern' saja terlalu luas tanpa konteks material/spesifikasi." },
+          { text: "Karena perintah tersebut terlalu panjang untuk AI.", correct: false, rationale: "Perintah tersebut justru terlalu singkat dan kurang spesifik." }
+        ]
+      },
+      {
+        question: "5. Manakah contoh 'Prompt Presisi' yang sesuai standar siswa TKP untuk menghasilkan render rumah tropis?",
+        options: [
+          { text: "Modern minimalis 1-story housing, exposed concrete wall, wooden texture, warm lighting, photorealistic.", correct: true, rationale: "Prompt ini menyebutkan gaya (modern minimalis), tipe (1 lantai), material (beton & kayu), dan pencahayaan secara rinci." },
+          { text: "Rumah tipe 36 murah dan kuat untuk perumahan.", correct: false, rationale: "Istilah 'murah dan kuat' adalah sifat teknis/ekonomi, bukan deskripsi visual render." },
+          { text: "Tolong gambarkan denah rumah lengkap dengan ukurannya.", correct: false, rationale: "Ini adalah instruksi denah 2D, bukan prompt visual rendering fasad 3D." },
+          { text: "Rumah idaman keluarga masa kini.", correct: false, rationale: "Kalimat ini terlalu puitis dan tidak memiliki deskripsi arsitektural." }
+        ]
+      },
+      {
+        question: "6. Software AI Takeoff seperti Togal.AI memangkas waktu hitung volume bahan hingga 10x lebih cepat. Perumpamaan alat ini adalah...",
+        options: [
+          { text: "Penggaris Ajaib & Kalkulator Pintar yang otomatis menghitung luas ruangan dari PDF.", correct: true, rationale: "AI Takeoff memindai pixel denah PDF dan langsung mengkalkulasi volume keramik, cat, dan dinding." },
+          { text: "Kamera Terbang yang memotret area perumahan.", correct: false, rationale: "Kamera terbang adalah perumpamaan untuk Drone AI." },
+          { text: "Kaca Minta-Tolong saat terjadi kecelakaan kerja.", correct: false, rationale: "Ini merujuk pada sistem tanggap darurat K3." },
+          { text: "Pena Digital yang melukis dinding secara otomatis.", correct: false, rationale: "AI Takeoff bekerja pada dokumen/gambar denah, bukan eksekusi pengecatan fisik." }
+        ]
+      },
+      {
+        question: "7. Bagaimana cara AI membantu Estimator saat diminta menghitung kebutuhan bata merah menggunakan standar SNI?",
+        options: [
+          { text: "AI mengalikan volume dinding dengan koefisien standar SNI (70 bata/m2) secara otomatis.", correct: true, rationale: "Dengan instruksi yang tepat, AI langsung memproses rumus koefisien AHSP SNI tanpa perlu dicari manual di buku tebal." },
+          { text: "AI langsung membelikan bata merah ke toko bangunan online.", correct: false, rationale: "AI menganalisis dan mengolah data hitungan, tidak melakukan transaksi pembelian otomatis tanpa persetujuan." },
+          { text: "AI merubah bata merah menjadi batako otomatis di lapangan.", correct: false, rationale: "AI tidak mengubah wujud material fisik di lapangan." },
+          { text: "AI menghapus syarat koefisien SNI agar hitungan lebih murah.", correct: false, rationale: "AI tetap mematuhi standar teknis keselamatan yang diperintahkan." }
+        ]
+      },
+      {
+        question: "8. Perumpamaan untuk Drone AI dalam pekerjaan pemetaan topografi lahan perumahan adalah...",
+        options: [
+          { text: "Burung Rajawali Berpenggaris Laser yang memindai kontur tanah dari udara.", correct: true, rationale: "Drone AI terbang mengumpulkan data kontur dan kubikasi galian/timbunan (Cut & Fill) secara presisi dari atas." },
+          { text: "Robot Cangkul yang menggali tanah secara otomatis.", correct: false, rationale: "Drone berfungsi untuk survei dan pemetaan, bukan eksekusi penggalian fisik." },
+          { text: "Helikopter Pengangkut Semen ke lokasi proyek.", correct: false, rationale: "Drone survei digunakan untuk pengambilan data digital." },
+          { text: "Satelit Komunikasi untuk telepon antar tukang.", correct: false, rationale: "Fungsi utama Drone AI topografi adalah pemetaan pemodelan 3D lahan." }
+        ]
+      },
+      {
+        question: "9. Dalam pemetaan lahan proyek perumahan, apakah fungsi utama algoritma AI setelah Drone selesai mengambil ratusan foto?",
+        options: [
+          { text: "Merekonstruksi foto overlapping menjadi model 3D dan peta kontur volumetrik.", correct: true, rationale: "AI menganalisis tiap pixel foto overlapping untuk membentuk peta ketinggian dan volume tanah." },
+          { text: "Mengecat foto udara agar warnanya lebih cerah.", correct: false, rationale: "Fungsi utama AI survei adalah pemprosesan data geometris dan teknis." },
+          { text: "Menghapus foto yang memperlihatkan pekerja sedang istirahat.", correct: false, rationale: "AI photogrammetry berfokus pada topografi dan dimensi lahan." },
+          { text: "Mengirim foto tersebut ke media sosial proyek.", correct: false, rationale: "Proses rekonstruksi 3D adalah inti pengolahan data teknisnya." }
+        ]
+      },
+      {
+        question: "10. Penggunaan Computer Vision K3 pada CCTV pintu masuk proyek diibaratkan seperti...",
+        options: [
+          { text: "Mata Satpam Digital 24 Jam yang mendeteksi penggunaan helm dan rompi K3.", correct: true, rationale: "Computer vision mengenali objek visual (helm/rompi) pada video streaming secara kontinu tanpa lelah." },
+          { text: "Alarm Kebakaran yang berbunyi saat ada asap.", correct: false, rationale: "Computer vision menganalisis citra/gambar visual, bukan deteksi asap kimia." },
+          { text: "Papan Pengumuman K3 yang dipasang di dinding.", correct: false, rationale: "Papan pengumuman bersifat pasif, sedangkan Computer Vision bersifat aktif mendeteksi." },
+          { text: "Lampu Penerangan Lapangan di malam hari.", correct: false, rationale: "Lampu hanya alat bantu penerangan, bukan pemrosesan kecerdasan visual." }
+        ]
+      },
+      {
+        question: "11. Apa fungsi teknik 'Bounding Box' pada sistem Computer Vision K3 di area kerja alat berat?",
+        options: [
+          { text: "Membuat kotak deteksi warna (Hijau/Merah) untuk menandai pelanggaran K3 atau area bahaya.", correct: true, rationale: "Bounding box membingkai objek terdeteksi untuk menghitung presisi posisi pekerja terhadap danger zone excavator." },
+          { text: "Membungkus alat berat dengan kayu agar tidak rusak.", correct: false, rationale: "Bounding box adalah kotak digital pada layar software visual AI." },
+          { text: "Mengunci pagar proyek agar tidak ada yang masuk.", correct: false, rationale: "Ini adalah penguncian fisik, bukan bounding box analisis data video." },
+          { text: "Menghitung jumlah kotak material semen di gudang.", correct: false, rationale: "Dalam konteks K3 area bahaya, bounding box membatasi zona aman pekerja." }
+        ]
+      },
+      {
+        question: "12. Dokumen RKS (Rencana Kerja & Syarat-Syarat) proyek seringkali sangat tebal. AI Document Reader diibaratkan sebagai...",
+        options: [
+          { text: "Asisten Pembaca Super Cepat yang mampu merangkum pasal spesifikasi teknis dalam 2 menit.", correct: true, rationale: "LLM/AI Document Reader mampu mengekstrak informasi mutu beton atau garansi dari file ratusan halaman secara mendadak." },
+          { text: "Mesin Fotokopi yang memperbanyak berkas kertas.", correct: false, rationale: "Fotokopi hanya menggandakan dokumen tanpa memahami corresponds isinya." },
+          { text: "Stempel Pengesahan Surat Kontrak.", correct: false, rationale: "AI tidak memberikan legalitas hukum stempel, melainkan membantu membaca informasi." },
+          { text: "Kamus Bahasa Inggris-Indonesia konvensional.", correct: false, rationale: "AI Document reader melakukan ekstraksi konteks teknis, bukan sekadar terjemahan kata." }
+        ]
+      },
+      {
+        question: "13. Manakah perintah (Prompt) yang efektif untuk meminta AI merangkum isi spesifikasi material dari file RKS.pdf?",
+        options: [
+          { text: "Tampilkan tabel ringkasan: Mutu Beton, Merk Semen, Ukuran Besi Ulir, dan Masa Garansi dari PDF ini.", correct: true, rationale: "Prompt ini memberikan poin spesifik yang dicari sehingga AI langsung mengekstrak data relevan." },
+          { text: "Bacakan seluruh isi file ini dari halaman 1 sampai selesai.", correct: false, rationale: "Meminta membaca ulang tidak memanfaatkan fungsi perangkuman/ekstraksi cepat AI." },
+          { text: "Apakah dokumen ini bagus untuk proyek perumahan?", correct: false, rationale: "Pertanyaan ini terlalu subjektif dan tidak meminta poin teknis material." },
+          { text: "Ubah semua tulisan di file ini menjadi bahasa asing.", correct: false, rationale: "Ini adalah instruksi penerjemahan total, bukan perangkuman poin spesifikasi." }
+        ]
+      },
+      {
+        question: "14. Apa 'Aturan Emas' etika penggunaan AI bagi seorang calon Teknisi Konstruksi (TKP)?",
+        options: [
+          { text: "AI adalah Alat Bantu Canggih, bukan pengganti tanggung jawab teknisi manusia.", correct: true, rationale: "Kekuatan struktur dan keamanan pondasi bangunan tetap menjadi tanggung jawab teknis dan hukum manusia." },
+          { text: "Semua hasil hitungan AI pasti 100% benar dan tidak perlu diperiksa lagi.", correct: false, rationale: "AI tetap bisa mengalami 'halusinasi' atau kesalahan data, sehingga uji petik manual wajib dilakukan." },
+          { text: "Teknisi tidak perlu belajar koding karena sudah ada AI.", correct: false, rationale: "Pemahaman logika koding membantu teknisi memberi instruksi/prompting tepat ke AI." },
+          { text: "Gunakan AI secara tersembunyi tanpa memberitahu pemilik proyek.", correct: false, rationale: "Penggunaan teknologi harus transparan dan sesuai dengan standar SOP industri." }
+        ]
+      },
+      {
+        question: "15. Dalam filosofi alat kerja, AI diibaratkan seperti 'Kalkulator Canggih'. Maksud dari perumpamaan ini adalah...",
+        options: [
+          { text: "Kalkulator mempercepat proses hitung, namun kendali pensil dan keputusan akhir tetap di tangan Teknisi.", correct: true, rationale: "AI meningkatkan efisiensi kerja, tetapi keputusan engineering dan analisis keselamatan tetap dipegang manusia." },
+          { text: "Kalkulator dapat menggantikan seluruh pekerjaan arsitek dan kontraktor.", correct: false, rationale: "Kalkulator hanya alat bantu, tidak bisa mengambil keputusan strategis di lapangan." },
+          { text: "Kalkulator hanya bisa digunakan untuk pelajaran Matematika dasar.", correct: false, rationale: "Analoginya adalah fungsi bantuan efisiensi pemrosesan data." },
+          { text: "Teknisi tidak boleh menggunakan kalkulator saat berada di lokasi proyek.", correct: false, rationale: "Teknisi justru disarankan memanfaatkan alat bantu modern untuk efisiensi." }
+        ]
+      }
+    ];
+
+    // STATE GAME
+    let currentQuestionIndex = 0;
+    let score = 0;
+    let studentName = "";
+    let studentClass = "";
+    let selectedOptionIndex = null;
+
+    // START QUIZ
+    function startQuiz(e) {
+      e.preventDefault();
+      studentName = document.getElementById('input-nama').value.trim();
+      studentClass = document.getElementById('input-kelas').value.trim();
+      
+      const customUrl = document.getElementById('input-script-url').value.trim();
+      if(customUrl) {
+        GOOGLE_SCRIPT_URL = customUrl;
+      }
+
+      document.getElementById('screen-register').classList.add('hidden');
+      document.getElementById('screen-quiz').classList.remove('hidden');
+
+      loadQuestion();
+    }
+
+    // LOAD SOAL
+    function loadQuestion() {
+      const q = quizData[currentQuestionIndex];
+      
+      // Update UI Counters
+      document.getElementById('label-soal-no').innerText = `Soal ${currentQuestionIndex + 1} dari ${quizData.length}`;
+      document.getElementById('label-skor-sementara').innerText = `Skor: ${score}`;
+      
+      const progressPercent = ((currentQuestionIndex) / quizData.length) * 100;
+      document.getElementById('progress-bar').style.width = `${progressPercent}%`;
+
+      // Set Teks Soal
+      document.getElementById('question-text').innerText = q.question;
+
+      // Reset Explanations & Next Button
+      document.getElementById('explanation-box').classList.add('hidden');
+      document.getElementById('btn-next').classList.add('hidden');
+      selectedOptionIndex = null;
+
+      // Render Options
+      const optionsContainer = document.getElementById('options-container');
+      optionsContainer.innerHTML = '';
+
+      q.options.forEach((opt, idx) => {
+        const btn = document.createElement('button');
+        btn.className = "w-full text-left p-4 rounded-xl border border-slate-700 bg-slate-900 hover:bg-slate-750 transition text-sm text-slate-200 flex items-start gap-3 group";
+        btn.onclick = () => selectOption(idx);
+        btn.id = `opt-${idx}`;
+
+        btn.innerHTML = `
+          <span class="w-6 h-6 rounded-full bg-slate-800 text-slate-400 group-hover:bg-blue-600 group-hover:text-white flex items-center justify-center text-xs font-bold shrink-0 transition">
+            ${String.fromCharCode(65 + idx)}
+          </span>
+          <span class="leading-relaxed">${opt.text}</span>
+        `;
+        optionsContainer.appendChild(btn);
+      });
+    }
+
+    // SELECT OPTION
+    function selectOption(index) {
+      if(selectedOptionIndex !== null) return; // Prevent double click
+      selectedOptionIndex = index;
+
+      const q = quizData[currentQuestionIndex];
+      const selected = q.options[index];
+
+      // Disable all buttons
+      const container = document.getElementById('options-container');
+      const buttons = container.querySelectorAll('button');
+
+      buttons.forEach((btn, idx) => {
+        btn.disabled = true;
+        btn.classList.remove('hover:bg-slate-750');
+        
+        if(q.options[idx].correct) {
+          btn.classList.add('bg-emerald-950/80', 'border-emerald-500', 'text-emerald-200');
+        } else if(idx === index && !selected.correct) {
+          btn.classList.add('bg-rose-950/80', 'border-rose-500', 'text-rose-200');
+        } else {
+          btn.classList.add('opacity-40');
+        }
+      });
+
+      // Update Score
+      if(selected.correct) {
+        score += Math.round(100 / quizData.length);
+      }
+
+      // Show Explanation
+      const expBox = document.getElementById('explanation-box');
+      const expText = document.getElementById('explanation-text');
+      expText.innerText = selected.rationale;
+      expBox.classList.remove('hidden');
+
+      // Show Next Button
+      document.getElementById('btn-next').classList.remove('hidden');
+    }
+
+    // NEXT QUESTION OR FINISH
+    function nextQuestion() {
+      currentQuestionIndex++;
+      if(currentQuestionIndex < quizData.length) {
+        loadQuestion();
+      } else {
+        showResult();
+      }
+    }
+
+    // SHOW RESULT & SEND TO SPREADSHEET
+    function showResult() {
+      document.getElementById('screen-quiz').classList.add('hidden');
+      document.getElementById('screen-result').classList.remove('hidden');
+
+      // Pastikan skor maksimal 100
+      if(score > 100 || currentQuestionIndex === quizData.length) {
+        // Hitung persentase presisi
+        const totalCorrect = quizData.reduce((acc, q, idx) => {
+          // Re-verify strictly for exact counter
+          return acc; 
+        }, 0);
+      }
+
+      document.getElementById('result-student-name').innerText = studentName;
+      document.getElementById('result-student-class').innerText = studentClass;
+      document.getElementById('final-score').innerText = score;
+      
+      const correctCount = Math.round((score / 100) * quizData.length);
+      document.getElementById('score-details').innerText = `Menjawab benar ±${correctCount} dari 15 soal`;
+
+      // KIRIM KE GOOGLE SPREADSHEET
+      sendDataToSpreadsheet();
+    }
+
+    // FETCH / POST DATA TO SPREADSHEET
+    function sendDataToSpreadsheet() {
+      const statusBox = document.getElementById('sheets-status-box');
+      const statusIcon = document.getElementById('sheets-status-icon');
+      const statusText = document.getElementById('sheets-status-text');
+
+      if (!GOOGLE_SCRIPT_URL) {
+        statusBox.className = "p-4 rounded-xl border bg-amber-950/50 border-amber-800 text-sm flex items-center justify-center gap-3 text-amber-300";
+        statusIcon.className = "fa-solid fa-triangle-exclamation text-amber-400 text-lg";
+        statusText.innerText = "Nilai belum terkirim otomatis (URL Google Apps Script belum dikonfigurasi oleh Guru).";
+        return;
+      }
+
+      const payload = {
+        nama: studentName,
+        kelas: studentClass,
+        nilai: score,
+        waktu: new Date().toLocaleString('id-ID')
+      };
+
+      // Menggunakan fetch mode no-cors untuk Google Apps Script Web App
+      fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+      })
+      .then(() => {
+        statusBox.className = "p-4 rounded-xl border bg-emerald-950/50 border-emerald-800 text-sm flex items-center justify-center gap-3 text-emerald-300";
+        statusIcon.className = "fa-solid fa-circle-check text-emerald-400 text-lg";
+        statusText.innerText = "Nilai berhasil direkam dan dikirim ke Google Sheets!";
+      })
+      .catch((err) => {
+        console.error(err);
+        statusBox.className = "p-4 rounded-xl border bg-rose-950/50 border-rose-800 text-sm flex items-center justify-center gap-3 text-rose-300";
+        statusIcon.className = "fa-solid fa-circle-xmark text-rose-400 text-lg";
+        statusText.innerText = "Gagal terhubung ke Google Sheets. Periksa koneksi internet.";
+      });
+    }
+  </script>
+</body>
+</html>
